@@ -1,12 +1,12 @@
 #include "Core.hpp"
 
-Core::Core() : mWindow(nullptr), mDelaTime(0.F), mIsFired(false)
+Core::Core() : mWindow(nullptr), mDelaTime(0.F), mIsFired(false), mIsSideways(false)
 {
 	mWindow = new sf::RenderWindow(sf::VideoMode(1920, 1080), "Rotation");
 
 	loadTextures();
 
-	//setAnimations();
+	setAnimations();
 
 	mTurretSprite.setPosition(sf::Vector2f(mSprite.getPosition().x + 130, mSprite.getPosition().y + 150));
 }
@@ -32,39 +32,26 @@ void Core::run()
 	}
 }
 
-void Core::updateAnimations(float & deltaTime)
+void Core::updateAnimations(float& deltaTime)
 {
-	if (mMovementComponent->getState(MOVING))
-	{
-		if (mSprite.getScale().y < 0.f)
-		{
-			mSprite.setOrigin(0.f, 0.f);
-			mSprite.setScale(1.f, 1.f);
-		}
+	if (mMovementComponent->getState(IDLE))
+		mAnimationComponent->play("IDLE", deltaTime);
 
-		this->mAnimationComponent->play("MOVE", deltaTime, mMovementComponent->getVelocity().y, mMovementComponent->getMaxVelocity());
-	}
+	else if (mMovementComponent->getState(MOVING_UP))
+		mAnimationComponent->play("MOVE", deltaTime);
 
-	else if (this->mMovementComponent->getState(MOVING))
-	{
-		if (mSprite.getScale().y < 0.f)
-		{
-			mSprite.setOrigin(140.f, 0.f);
-			mSprite.setScale(1.f, 1.f);
-		}
-
-		mAnimationComponent->play("MOVE", deltaTime, mMovementComponent->getVelocity().y, mMovementComponent->getMaxVelocity());
-	}
+	else if (mMovementComponent->getState(MOVING_LEFT))
+		mAnimationComponent->play("SIDE", deltaTime);
 }
 
 void Core::createMovementComponent(const float max_velocity, const float acceleration, const float deceleration)
 {
-	mMovementComponent = new MovementComponent(mSprite, max_velocity, acceleration, deceleration);
+	mMovementComponent = new MovementComponent(mTreadSprite, max_velocity, acceleration, deceleration);
 }
 
 void Core::createAnimationComponent(sf::Texture& texture_sheet)
 {
-	mAnimationComponent = new AnimationComponent(mSprite, texture_sheet);
+	mAnimationComponent = new AnimationComponent(mTreadSprite, texture_sheet);
 }
 
 void Core::move(const float direction_x, const float direction_y, const float& deltaTime)
@@ -77,13 +64,19 @@ void Core::setAnimations()
 {
 	createMovementComponent(350.F, 16.F, 6.F);
 
-	createAnimationComponent(mTexture);
+	createAnimationComponent(mTreadTexture);
 
-	mAnimationComponent->addAnimation("MOVE", 16.F, 0, 0, 4, 0, 256, 256);
+	mAnimationComponent->addAnimation("IDLE", 50.F, 0, 0, 1, 0, 256, 256);
+	mAnimationComponent->addAnimation("MOVE", 16.F, 0, 0, 1, 0, 256, 256);
+	mAnimationComponent->addAnimation("SIDE", 16.F, 1, 0, 1, 1, 256, 256);
 }
 
 void Core::update(float& deltaTime)
 {
+	mMovementComponent->update(deltaTime);
+
+	updateAnimations(deltaTime);
+
 	processEvents(deltaTime);
 
 	moveSprite(deltaTime);
@@ -92,12 +85,14 @@ void Core::update(float& deltaTime)
 
 	mTurretSprite.setPosition(sf::Vector2f(mSprite.getPosition().x + 130, mSprite.getPosition().y + 150));
 
-	//updateAnimations(deltaTime);
+	mTreadSprite.setPosition(sf::Vector2f(mSprite.getPosition().x, mSprite.getPosition().y - 15));
 }
 
 void Core::render(sf::RenderTarget & target)
 {
 	mWindow->clear();
+
+	target.draw(mTreadSprite);
 
 	target.draw(mSprite);
 
@@ -111,6 +106,32 @@ void Core::render(sf::RenderTarget & target)
 
 void Core::processEvents(float & deltaTime)
 {
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+	{
+		mSprite.move(0.F, -1.F);
+
+		//move(0.F, -1.F, deltaTime);
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+	{
+		mSprite.move(0.F, 1.F);
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+	{
+		mSprite.move(-1.F, 0.F);
+
+		//move(-1.F, 0.F, deltaTime);
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+	{
+		mSprite.move(1.F, 0.F);
+
+		//move(-1.F, 0.F, deltaTime);
+	}
+
 	while (mWindow->pollEvent(e))
 	{
 		if (e.type == sf::Event::Closed)
@@ -118,16 +139,6 @@ void Core::processEvents(float & deltaTime)
 
 		if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape)
 			mWindow->close();
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-		{
-			mSprite.move(0.F, -1.F);
-
-			move(0.F, -1.F, deltaTime);
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			mSprite.move(0.F, 1.F);
 
 		/*if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
 			mIsFired = true;*/
@@ -173,19 +184,24 @@ void Core::loadTextures()
 	if (!mProjectileTexture.loadFromFile("Shell.png"))
 		std::cerr << "";
 
-	if (!mTreadTexture_L.loadFromFile("Track_1_A.png"))
-		std::cerr << "";
-
-	if (!mTreadTexture_R.loadFromFile("Track_1_B.png.png"))
+	if (!mTreadTexture.loadFromFile("C.png"))
 		std::cerr << "";
 
 	mProjectileSprite.setTexture(mProjectileTexture);
+
 	mSprite.setTexture(mTexture);
+
 	mTurretSprite.setTexture(mTurretTexture);
+
+	mTreadSprite.setTexture(mTreadTexture);
 
 	mSprite.setPosition(sf::Vector2f(800.F, 400.F));
 
 	mTurretSprite.setOrigin(mTurretSprite.getLocalBounds().width / 2, mTurretSprite.getLocalBounds().height - 50.F);
+}
+
+void Core::checkDirection(float& deltaTime)
+{
 }
 
 float Core::vectorLength(sf::Vector2f v)

@@ -16,7 +16,6 @@ public:
 	void run();
 
 private:
-	void animations(sf::Sprite& sprite, const float& deltaTime, bool isAttacking = false);
 	void updateAnimations(float& deltaTime);
 	void createMovementComponent(const float max_velocity, const float acceleration, const float deceleration);
 	void createAnimationComponent(sf::Texture& texture_sheet);
@@ -28,6 +27,8 @@ private:
 	void dtClock();
 	void moveSprite(float& deltaTime);
 	void loadTextures();
+	void checkDirection(float& deltaTime);
+
 	float vectorLength(sf::Vector2f v);
 	sf::Vector2f normalize(sf::Vector2f v, float length);
 
@@ -45,15 +46,13 @@ private:
 	sf::Sprite mTurretSprite;
 	sf::Texture mTurretTexture;
 
-	sf::Sprite mTreadSprite_R;
-	sf::Texture mTreadTexture_R;
-
-	sf::Sprite mTreadSprite_L;
-	sf::Texture mTreadTexture_L;
+	sf::Sprite mTreadSprite;
+	sf::Texture mTreadTexture;
 
 	float mDelaTime;
 
 	bool mIsFired;
+	bool mIsSideways;
 
 	AnimationComponent* mAnimationComponent;
 	MovementComponent* mMovementComponent;
